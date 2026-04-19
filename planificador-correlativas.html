@@ -135,6 +135,19 @@
       font-weight: 600;
     }
 
+    .happy {
+      color: #6d28d9;
+      font-weight: 700;
+    }
+
+    .celebrate-box {
+      border: 1px solid #d8b4fe;
+      background: #f5e8ff;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
     ul {
       margin: 8px 0 0;
       padding-left: 18px;
@@ -246,12 +259,34 @@
       { id: 41, anio: 5, nombre: "Electiva de 5° año (2)", cursadas: [], aprobadas: [], minYear: 5, esElectiva: true },
       { id: 42, anio: 5, nombre: "Electiva de 5° año (3)", cursadas: [], aprobadas: [], minYear: 5, esElectiva: true },
       { id: 43, anio: 5, nombre: "Electiva de 5° año (4)", cursadas: [], aprobadas: [], minYear: 5, esElectiva: true },
-      { id: 44, anio: 3, nombre: "Seminario Integrador (TI)", cursadas: [16], aprobadas: [6, 8, 13, 14], minYear: 3, esSoloTI: true }
+      {
+        id: 44,
+        anio: 3,
+        nombre: "Seminario Integrador (TI)",
+        cursadas: [16],
+        aprobadas: [6, 8, 13, 14],
+        minYear: 3,
+        esSoloTI: true,
+        sinAnioEnEtiqueta: true
+      },
+      {
+        id: 45,
+        anio: 3,
+        nombre: "Pack 3 electivas (TI)",
+        cursadas: [],
+        aprobadas: [],
+        minYear: 3,
+        esPackElectivasTI: true,
+        esSoloTI: true,
+        sinAnioEnEtiqueta: true
+      }
     ];
 
     const byId = new Map(materias.map((m) => [m.id, m]));
     const YEAR_SLOTS = 8;
     const storageKey = "planificador_correlativas_plan";
+    const tiHappyAlertKey = "planificador_ti_happy_alert";
+    const tiCompletoAlertKey = "planificador_ti_completo_alert";
     const plan = JSON.parse(localStorage.getItem(storageKey) || "{}");
 
     function idsAsignadas() {
@@ -285,14 +320,13 @@
     function textoReq(ids) {
       if (!ids.length) return "Sin requisito";
       return ids
-        .map((id) => {
-          const m = byId.get(id);
-          return `${id} ${m.nombre} (${m.anio}°)`;
-        })
+        .map((id) => etiquetaMateria(byId.get(id)))
         .join(" | ");
     }
 
     function etiquetaMateria(m) {
+      if (!m) return "";
+      if (m.sinAnioEnEtiqueta) return `${m.id}. ${m.nombre}`;
       return `${m.id}. ${m.nombre} (${m.anio}°)`;
     }
 
@@ -303,7 +337,11 @@
         const col = document.createElement("div");
         col.className = "year-col";
         const asignadasAnio = (plan[anio] || []).map((id) => byId.get(Number(id))).filter(Boolean);
-        const hab = habilitadasPara(anio);
+        const hab = habilitadasPara(anio).sort((a, b) => {
+          if (a.esPackElectivasTI && !b.esPackElectivasTI) return -1;
+          if (!a.esPackElectivasTI && b.esPackElectivasTI) return 1;
+          return a.anio - b.anio || a.id - b.id;
+        });
 
         const options = hab
           .map((m) => `<option value="${m.id}">${etiquetaMateria(m)}</option>`)
@@ -337,7 +375,11 @@
           div.innerHTML = `
             <h3>${etiquetaMateria(m)}</h3>
             ${m.esElectiva ? '<div class="small">Tipo: Electiva</div>' : ""}
-            ${m.esSoloTI ? '<div class="small">Tipo: TI (solo título intermedio)</div>' : ""}
+            ${m.esPackElectivasTI
+              ? '<div class="small">Tipo: Pack TI — equivale a 3 electivas para el intermedio (solo TI)</div>'
+              : m.esSoloTI
+                ? '<div class="small">Tipo: TI (solo título intermedio)</div>'
+                : ""}
             <div class="small">Cursadas: ${textoReq(m.cursadas)}</div>
             <div class="small">Aprobadas: ${textoReq(m.aprobadas)}</div>
             <div class="year-actions">
@@ -407,25 +449,58 @@
         .map((id) => byId.get(id))
         .filter(Boolean);
 
-      const electivasAsignadas = materias
-        .filter((m) => m.esElectiva && asignadas.has(m.id))
-        .length;
-      const electivasRestantes = Math.max(0, 3 - electivasAsignadas);
-      const cumpleTI = faltantesMaterias.length === 0 && electivasRestantes === 0;
+      const electivasIndividuales = materias.filter((m) => m.esElectiva && asignadas.has(m.id)).length;
+      const conPackElectivasTI = asignadas.has(45);
+      const electivasTISatisfechas = conPackElectivasTI || electivasIndividuales >= 3;
+      const electivasRestantes = electivasTISatisfechas ? 0 : Math.max(0, 3 - electivasIndividuales);
+      const cumpleTI = faltantesMaterias.length === 0 && electivasTISatisfechas;
+      const baseTI = Array.from({ length: 23 }, (_, i) => i + 1);
+      const baseTICumplida = baseTI.every((id) => asignadas.has(id));
+      const seminarioPendiente = !asignadas.has(44);
+      const casiTI = baseTICumplida && seminarioPendiente && !electivasTISatisfechas;
+
+      if (casiTI && localStorage.getItem(tiHappyAlertKey) !== "1") {
+        window.alert(
+          "Gran avance! Ya tenés todas las materias base del Título Intermedio. Solo te falta Seminario Integrador (TI) y completar las 3 electivas (podés sumar 3 electivas sueltas o el Pack 3 electivas (TI))."
+        );
+        localStorage.setItem(tiHappyAlertKey, "1");
+      }
+      if (!casiTI) {
+        localStorage.removeItem(tiHappyAlertKey);
+      }
+
+      if (cumpleTI && localStorage.getItem(tiCompletoAlertKey) !== "1") {
+        window.alert(
+          "Felicitaciones! Con tu plan actual ya cubrís materias 1 a 23, Seminario Integrador (TI) y el requisito de electivas (3 electivas o Pack 3 electivas (TI)). Tenés el Título Intermedio en el planificador!"
+        );
+        localStorage.setItem(tiCompletoAlertKey, "1");
+      }
+      if (!cumpleTI) {
+        localStorage.removeItem(tiCompletoAlertKey);
+      }
 
       const faltantesHtml = faltantesMaterias.length
         ? `<ul>${faltantesMaterias.map((m) => `<li>${etiquetaMateria(m)}</li>`).join("")}</ul>`
         : `<p class="ok">Todas las materias obligatorias del TI están cubiertas.</p>`;
 
-      const estadoElectivas = electivasRestantes === 0
-        ? `<p class="ok">Electivas TI: ${electivasAsignadas}/3 (requisito cumplido).</p>`
-        : `<p class="warn">Electivas TI: ${electivasAsignadas}/3. Faltan ${electivasRestantes} electiva(s).</p>`;
+      let estadoElectivas;
+      if (conPackElectivasTI) {
+        estadoElectivas = `<p class="ok">Electivas TI: cubiertas con <strong>Pack 3 electivas (TI)</strong> (equivale a 3 electivas).</p>`;
+      } else if (electivasIndividuales >= 3) {
+        estadoElectivas = `<p class="ok">Electivas TI: ${electivasIndividuales}/3 con electivas individuales (requisito cumplido).</p>`;
+      } else {
+        estadoElectivas = `<p class="warn">Electivas TI: ${electivasIndividuales}/3. Faltan ${electivasRestantes}. Recomendado: <strong>Pack 3 electivas (TI)</strong>, o bien 3 electivas individuales.</p>`;
+      }
 
       cont.innerHTML = `
         ${cumpleTI
-          ? `<p class="ok"><strong>Requisito de Título Intermedio cumplido.</strong> Ya tenés asignadas las materias requeridas, Seminario Integrador (TI) y al menos 3 electivas.</p>`
-          : `<p class="warn"><strong>Aún no llegás al Título Intermedio.</strong> Abajo se listan los faltantes.</p>`}
-        <p class="small">Para esta validación se controla: materias 1 a 23 + Seminario Integrador (TI) + 3 electivas de cualquier año.</p>
+          ? `<div class="celebrate-box happy">¡Felicitaciones! Ya cumplís en el planificador los requisitos del <strong>Título Intermedio</strong> 🎉</div>
+          <p class="ok"><strong>Título Intermedio cubierto.</strong> Tenés materias 1 a 23, Seminario Integrador (TI) y electivas (3 individuales o Pack 3 electivas (TI)).</p>`
+          : casiTI
+            ? `<div class="celebrate-box happy">Excelente noticia: ya completaste todas las materias base del TI. Solo falta <strong>Seminario Integrador (TI)</strong> y el bloque de <strong>3 electivas</strong> (recomendado: <strong>Pack 3 electivas (TI)</strong>, o 3 electivas sueltas).</div>
+            <p class="warn"><strong>Aún no llegás al Título Intermedio.</strong> Revisá abajo los pendientes.</p>`
+            : `<p class="warn"><strong>Aún no llegás al Título Intermedio.</strong> Abajo se listan los faltantes.</p>`}
+        <p class="small">Para esta validación se controla: materias 1 a 23 + Seminario Integrador (TI) + <strong>3 electivas</strong> de cualquier año <strong>o</strong> <strong>Pack 3 electivas (TI)</strong>.</p>
         ${estadoElectivas}
         <p><strong>Materias TI pendientes:</strong></p>
         ${faltantesHtml}

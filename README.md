@@ -23,8 +23,8 @@ Permite armar el plan por años, ver qué materias se habilitan según lo ya asi
 ## Archivos principales
 
 - `planificador-correlativas.html`: aplicación principal autocontenida.
-- `Correlativas-plan-2023.pdf`: base de correlatividades usada para el plan general.
-- `titulo_intermedio.pdf`: referencia para requisitos del título intermedio.
+- `documentacion/Correlativas-plan-2023.pdf`: base de correlatividades usada para el plan general.
+- `documentacion/titulo_intermedio.pdf`: referencia para requisitos del título intermedio.
 
 ## Uso
 
