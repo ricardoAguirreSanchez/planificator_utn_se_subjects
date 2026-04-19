@@ -4,6 +4,10 @@ Herramienta web simple (HTML + CSS + JavaScript) para planificar la cursada de I
 
 Permite armar el plan por años, ver qué materias se habilitan según lo ya asignado y validar el avance para el Título Intermedio.
 
+## Demo online
+
+- [Abrir planificador en GitHub Pages](https://ricardoaguirresanchez.github.io/planificator_utn_se_subjects/planificador-correlativas.html)
+
 ## Funcionalidades
 
 - Armado manual del plan por año (1° a 8°).
