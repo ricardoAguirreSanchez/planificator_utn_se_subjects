@@ -223,8 +223,8 @@
       <h2>Estado del plan</h2>
       <div class="inline">
         <button id="limpiarPlanBtn">Reiniciar plan</button>
-        <button id="cargarIngenieroBtn">Cargar materias Ingeniero default</button>
-        <button id="cargarTIBtn">Cargar materias TI default</button>
+        <button id="cargarIngenieroBtn">Cargar materias título ingeniero</button>
+        <button id="cargarTABtn">Cargar materias título analista</button>
       </div>
       <div class="summary" id="resumen"></div>
     </section>
@@ -244,8 +244,8 @@
     </section>
 
     <section class="card">
-      <h2>Validación Título Intermedio (TI)</h2>
-      <div id="validacionTI"></div>
+      <h2>Validación Título Analista (TA)</h2>
+      <div id="validacionTA"></div>
     </section>
   </div>
 
@@ -304,22 +304,22 @@
       {
         id: 44,
         anio: 3,
-        nombre: "Seminario Integrador (TI)",
+        nombre: "Seminario Integrador (TA)",
         cursadas: [16],
         aprobadas: [6, 8, 13, 14],
         minYear: 3,
-        esSoloTI: true,
+        esSoloTA: true,
         sinAnioEnEtiqueta: true
       },
       {
         id: 45,
         anio: 3,
-        nombre: "Pack 3 electivas (TI)",
+        nombre: "Pack 3 electivas (TA)",
         cursadas: [],
         aprobadas: [],
         minYear: 3,
-        esPackElectivasTI: true,
-        esSoloTI: true,
+        esPackElectivasTA: true,
+        esSoloTA: true,
         sinAnioEnEtiqueta: true
       }
     ];
@@ -327,8 +327,8 @@
     const byId = new Map(materias.map((m) => [m.id, m]));
     const YEAR_SLOTS = 8;
     const storageKey = "planificador_correlativas_plan";
-    const tiHappyAlertKey = "planificador_ti_happy_alert";
-    const tiCompletoAlertKey = "planificador_ti_completo_alert";
+    const taHappyAlertKey = "planificador_ta_happy_alert";
+    const taCompletoAlertKey = "planificador_ta_completo_alert";
     const plan = JSON.parse(localStorage.getItem(storageKey) || "{}");
 
     function idsAsignadas() {
@@ -380,8 +380,8 @@
         col.className = "year-col";
         const asignadasAnio = (plan[anio] || []).map((id) => byId.get(Number(id))).filter(Boolean);
         const hab = habilitadasPara(anio).sort((a, b) => {
-          if (a.esPackElectivasTI && !b.esPackElectivasTI) return -1;
-          if (!a.esPackElectivasTI && b.esPackElectivasTI) return 1;
+          if (a.esPackElectivasTA && !b.esPackElectivasTA) return -1;
+          if (!a.esPackElectivasTA && b.esPackElectivasTA) return 1;
           return a.anio - b.anio || a.id - b.id;
         });
 
@@ -417,10 +417,10 @@
           div.innerHTML = `
             <h3>${etiquetaMateria(m)}</h3>
             ${m.esElectiva ? '<div class="small">Tipo: Electiva</div>' : ""}
-            ${m.esPackElectivasTI
-              ? '<div class="small">Tipo: Pack TI — equivale a 3 electivas para el intermedio (solo TI)</div>'
-              : m.esSoloTI
-                ? '<div class="small">Tipo: TI (solo título intermedio)</div>'
+            ${m.esPackElectivasTA
+              ? '<div class="small">Tipo: Pack TA — equivale a 3 electivas para el Título de Analista (solo TA)</div>'
+              : m.esSoloTA
+                ? '<div class="small">Tipo: TA (solo título de analista)</div>'
                 : ""}
             <div class="small">Cursadas: ${textoReq(m.cursadas)}</div>
             <div class="small">Aprobadas: ${textoReq(m.aprobadas)}</div>
@@ -439,15 +439,15 @@
 
     function renderResumen() {
       const asignadas = idsAsignadas();
-      const materiasNoTI = materias.filter((m) => !m.esSoloTI);
-      const faltan = materiasNoTI.filter((m) => !asignadas.has(m.id)).length;
+      const materiasNoTA = materias.filter((m) => !m.esSoloTA);
+      const faltan = materiasNoTA.filter((m) => !asignadas.has(m.id)).length;
       const ultimoConMaterias = [...Array(YEAR_SLOTS).keys()]
         .map((i) => i + 1)
         .filter((anio) => (plan[anio] || []).length > 0)
         .pop() || 0;
       const resumen = document.getElementById("resumen");
       resumen.innerHTML = `
-        <div class="summary-item"><strong>Asignadas al plan</strong><br/>${asignadas.size} / ${materiasNoTI.length}</div>
+        <div class="summary-item"><strong>Asignadas al plan</strong><br/>${asignadas.size} / ${materiasNoTA.length}</div>
         <div class="summary-item"><strong>Pendientes</strong><br/>${faltan}</div>
         <div class="summary-item"><strong>Último año usado</strong><br/>${ultimoConMaterias ? `${ultimoConMaterias}°` : "Sin definir"}</div>
         <div class="summary-item"><strong>Habilitadas para agregar ahora</strong><br/>${habilitadasPara(ultimoConMaterias + 1).length}</div>
@@ -458,7 +458,7 @@
       const impacto = document.getElementById("impacto");
       const disponibles = habilitadasPara(1);
       const asignadas = idsAsignadas();
-      const restantes = materias.filter((m) => !asignadas.has(m.id) && !m.esSoloTI);
+      const restantes = materias.filter((m) => !asignadas.has(m.id) && !m.esSoloTA);
 
       const disponiblesHtml = disponibles.length
         ? disponibles.map((m) => `<span class="pill">${etiquetaMateria(m)}</span>`).join("")
@@ -481,7 +481,7 @@
     function renderValidacionIngeniero() {
       const cont = document.getElementById("validacionIngeniero");
       const asignadas = idsAsignadas();
-      const materiasIngeniero = materias.filter((m) => !m.esSoloTI);
+      const materiasIngeniero = materias.filter((m) => !m.esSoloTA);
       const faltantes = materiasIngeniero.filter((m) => !asignadas.has(m.id));
       const cumple = faltantes.length === 0;
 
@@ -493,79 +493,79 @@
         ${cumple
           ? `<div class="celebrate-box happy">¡Felicitaciones! Ya cumplís en el planificador todos los requisitos del <strong>Título de Ingeniero en Sistemas de Información</strong> 🎉</div>`
           : `<p class="warn"><strong>Aún no completás el Título de Ingeniero.</strong> Te faltan ${faltantes.length} materia${faltantes.length !== 1 ? "s" : ""}.</p>`}
-        <p class="small">Se requieren las ${materiasIngeniero.length} materias del plan (sin contar materias exclusivas del TI).</p>
+        <p class="small">Se requieren las ${materiasIngeniero.length} materias del plan (sin contar materias exclusivas del TA).</p>
         ${faltantesHtml}
       `;
     }
 
-    function renderValidacionTI() {
-      const cont = document.getElementById("validacionTI");
+    function renderValidacionTA() {
+      const cont = document.getElementById("validacionTA");
       const asignadas = idsAsignadas();
-      const requeridasTI = [
+      const requeridasTA = [
         1, 2, 3, 4, 5, 6, 7, 8,
         9, 10, 11, 12, 13, 14, 15, 16,
         17, 18, 19, 20, 21, 22, 23, 44
       ];
 
-      const faltantesMaterias = requeridasTI
+      const faltantesMaterias = requeridasTA
         .filter((id) => !asignadas.has(id))
         .map((id) => byId.get(id))
         .filter(Boolean);
 
       const electivasIndividuales = materias.filter((m) => m.esElectiva && asignadas.has(m.id)).length;
-      const conPackElectivasTI = asignadas.has(45);
-      const electivasTISatisfechas = conPackElectivasTI || electivasIndividuales >= 3;
-      const electivasRestantes = electivasTISatisfechas ? 0 : Math.max(0, 3 - electivasIndividuales);
-      const cumpleTI = faltantesMaterias.length === 0 && electivasTISatisfechas;
-      const baseTI = Array.from({ length: 23 }, (_, i) => i + 1);
-      const baseTICumplida = baseTI.every((id) => asignadas.has(id));
+      const conPackElectivasTA = asignadas.has(45);
+      const electivasTASatisfechas = conPackElectivasTA || electivasIndividuales >= 3;
+      const electivasRestantes = electivasTASatisfechas ? 0 : Math.max(0, 3 - electivasIndividuales);
+      const cumpleTA = faltantesMaterias.length === 0 && electivasTASatisfechas;
+      const baseTA = Array.from({ length: 23 }, (_, i) => i + 1);
+      const baseTACumplida = baseTA.every((id) => asignadas.has(id));
       const seminarioPendiente = !asignadas.has(44);
-      const casiTI = baseTICumplida && seminarioPendiente && !electivasTISatisfechas;
+      const casiTA = baseTACumplida && seminarioPendiente && !electivasTASatisfechas;
 
-      if (casiTI && localStorage.getItem(tiHappyAlertKey) !== "1") {
+      if (casiTA && localStorage.getItem(taHappyAlertKey) !== "1") {
         window.alert(
-          "Gran avance! Ya tenés todas las materias base del Título Intermedio. Solo te falta Seminario Integrador (TI) y completar las 3 electivas (podés sumar 3 electivas sueltas o el Pack 3 electivas (TI))."
+          "Gran avance! Ya tenés todas las materias base del Título de Analista. Solo te falta Seminario Integrador (TA) y completar las 3 electivas (podés sumar 3 electivas sueltas o el Pack 3 electivas (TA))."
         );
-        localStorage.setItem(tiHappyAlertKey, "1");
+        localStorage.setItem(taHappyAlertKey, "1");
       }
-      if (!casiTI) {
-        localStorage.removeItem(tiHappyAlertKey);
+      if (!casiTA) {
+        localStorage.removeItem(taHappyAlertKey);
       }
 
-      if (cumpleTI && localStorage.getItem(tiCompletoAlertKey) !== "1") {
+      if (cumpleTA && localStorage.getItem(taCompletoAlertKey) !== "1") {
         window.alert(
-          "FELICITACIONES!!!!!!!!!!!!!!!!!! Con tu plan actual ya cubrís materias 1 a 23, Seminario Integrador (TI) y el requisito de electivas (3 electivas o Pack 3 electivas (TI)). Tenés el Título Intermedio en el planificador!"
+          "FELICITACIONES!!!!!!!!!!!!!!!!!! Con tu plan actual ya cubrís materias 1 a 23, Seminario Integrador (TA) y el requisito de electivas (3 electivas o Pack 3 electivas (TA)). Tenés el Título de Analista en el planificador!"
         );
-        localStorage.setItem(tiCompletoAlertKey, "1");
+        localStorage.setItem(taCompletoAlertKey, "1");
       }
-      if (!cumpleTI) {
-        localStorage.removeItem(tiCompletoAlertKey);
+      if (!cumpleTA) {
+        localStorage.removeItem(taCompletoAlertKey);
       }
 
       const faltantesHtml = faltantesMaterias.length
         ? `<ul>${faltantesMaterias.map((m) => `<li>${etiquetaMateria(m)}</li>`).join("")}</ul>`
-        : `<p class="ok">Todas las materias obligatorias del TI están cubiertas.</p>`;
+        : `<p class="ok">Todas las materias obligatorias del TA están cubiertas.</p>`;
 
       let estadoElectivas;
-      if (conPackElectivasTI) {
-        estadoElectivas = `<p class="ok">Electivas TI: cubiertas con <strong>Pack 3 electivas (TI)</strong> (equivale a 3 electivas).</p>`;
+      if (conPackElectivasTA) {
+        estadoElectivas = `<p class="ok">Electivas TA: cubiertas con <strong>Pack 3 electivas (TA)</strong> (equivale a 3 electivas).</p>`;
       } else if (electivasIndividuales >= 3) {
-        estadoElectivas = `<p class="ok">Electivas TI: ${electivasIndividuales}/3 con electivas individuales (requisito cumplido).</p>`;
+        estadoElectivas = `<p class="ok">Electivas TA: ${electivasIndividuales}/3 con electivas individuales (requisito cumplido).</p>`;
       } else {
-        estadoElectivas = `<p class="warn">Electivas TI: ${electivasIndividuales}/3. Faltan ${electivasRestantes}. Recomendado: <strong>Pack 3 electivas (TI)</strong>, o bien 3 electivas individuales.</p>`;
+        estadoElectivas = `<p class="warn">Electivas TA: ${electivasIndividuales}/3. Faltan ${electivasRestantes}. Recomendado: <strong>Pack 3 electivas (TA)</strong>, o bien 3 electivas individuales.</p>`;
       }
 
       cont.innerHTML = `
-        ${cumpleTI
-          ? `<div class="celebrate-box happy">¡Felicitaciones! Ya cumplís en el planificador los requisitos del <strong>Título Intermedio</strong> 🎉</div>
-          <p class="ok"><strong>Título Intermedio cubierto.</strong> Tenés materias 1 a 23, Seminario Integrador (TI) y electivas (3 individuales o Pack 3 electivas (TI)).</p>`
-          : casiTI
-            ? `<div class="celebrate-box happy">Excelente noticia: ya completaste todas las materias base del TI. Solo falta <strong>Seminario Integrador (TI)</strong> y el bloque de <strong>3 electivas</strong> (recomendado: <strong>Pack 3 electivas (TI)</strong>, o 3 electivas sueltas).</div>
-            <p class="warn"><strong>Aún no llegás al Título Intermedio.</strong> Revisá abajo los pendientes.</p>`
-            : `<p class="warn"><strong>Aún no llegás al Título Intermedio.</strong> Abajo se listan los faltantes.</p>`}
-        <p class="small">Para esta validación se controla: materias 1 a 23 + Seminario Integrador (TI) + <strong>3 electivas</strong> de cualquier año <strong>o</strong> <strong>Pack 3 electivas (TI)</strong>.</p>
+        ${cumpleTA
+          ? `<div class="celebrate-box happy">¡Felicitaciones! Ya cumplís en el planificador los requisitos del <strong>Título de Analista</strong> 🎉</div>
+          <p class="ok"><strong>Título de Analista cubierto.</strong> Tenés materias 1 a 23, Seminario Integrador (TA) y electivas (3 individuales o Pack 3 electivas (TA)).</p>`
+          : casiTA
+            ? `<div class="celebrate-box happy">Excelente noticia: ya completaste todas las materias base del TA. Solo falta <strong>Seminario Integrador (TA)</strong> y el bloque de <strong>3 electivas</strong> (recomendado: <strong>Pack 3 electivas (TA)</strong>, o 3 electivas sueltas).</div>
+            <p class="warn"><strong>Aún no llegás al Título de Analista.</strong> Revisá abajo los pendientes.</p>`
+            : `<p class="warn"><strong>Aún no llegás al Título de Analista.</strong> Abajo se listan los faltantes.</p>`}
+        <p class="small">Para esta validación se controla: materias 1 a 23 + Seminario Integrador (TA) + <strong>3 electivas</strong> de cualquier año <strong>o</strong> <strong>Pack 3 electivas (TA)</strong>.</p>
         ${estadoElectivas}
-        <p><strong>Materias TI pendientes:</strong></p>
+        <p><strong>Materias TA pendientes:</strong></p>
         ${faltantesHtml}
       `;
     }
@@ -575,7 +575,7 @@
       renderResumen();
       renderImpacto();
       renderValidacionIngeniero();
-      renderValidacionTI();
+      renderValidacionTA();
       bindEvents();
     }
 
@@ -662,9 +662,9 @@
       5: [31, 32, 33, 34, 35, 36, 40, 41, 42, 43]
     };
 
-    // Plan default TI: materias 1-23 + Seminario Integrador (TI) + Pack 3 electivas (TI)
+    // Plan default TA: materias 1-23 + Seminario Integrador (TA) + Pack 3 electivas (TA)
     // Nota: Inglés I en 2°, Inglés II en 3° (historial de cambios)
-    const planTIDefault = {
+    const planTADefault = {
       1: [1, 2, 3, 5, 6, 7, 8],
       2: [9, 10, 11, 4, 13, 14, 15, 16],
       3: [17, 18, 19, 20, 21, 22, 23, 12, 44, 45]
@@ -686,11 +686,11 @@
       cargarPlanDefault(planIngenieroDefault);
     });
 
-    document.getElementById("cargarTIBtn").addEventListener("click", () => {
+    document.getElementById("cargarTABtn").addEventListener("click", () => {
       if (Object.values(plan).some((v) => v.length > 0)) {
         if (!window.confirm("Esto va a reemplazar tu plan actual. ¿Continuás?")) return;
       }
-      cargarPlanDefault(planTIDefault);
+      cargarPlanDefault(planTADefault);
     });
 
     renderAll();
